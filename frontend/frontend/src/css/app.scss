@@ -1,0 +1,54 @@
+// Estilos globales de VetCare
+html, body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+// Tarjetas estilizadas
+.vet-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.stat-card {
+  border-radius: 12px;
+  border-left: 4px solid $primary;
+}
+
+// Encabezados limpios
+.page-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+// Bordes de tabla redondeados
+.vet-table {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+
+  .q-table__top {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  thead tr:first-child th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+  }
+}
+
+// Diálogos con esquinas suaves
+.vet-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+}
