@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrapper row justify-center items-center">
     <div class="col-11 col-sm-8 col-md-5 col-lg-4">
-      <q-card class="vet-card q-pa-md-lg q-pa-sm-md">
+      <q-card class="vet-card login-card">
         <!-- Encabezado con Identidad de Marca -->
         <div class="text-center q-mb-lg">
           <q-avatar size="72px" color="teal-1" text-color="primary" class="q-mb-sm shadow-1">
@@ -156,5 +156,9 @@ const iniciarSesion = async () => {
   min-height: 100vh;
   background: linear-gradient(135deg, #0d9488 0%, #0f172a 100%);
   padding: 16px;
+}
+
+.login-card {
+  padding: 20px;
 }
 </style>

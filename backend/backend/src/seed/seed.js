@@ -1,3 +1,4 @@
+
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import Usuario from '../models/Usuario.js';
@@ -8,257 +9,299 @@ import Atencion from '../models/Atencion.js';
 
 dotenv.config();
 
-const ejecutarSeed = async () => {
+// Busca un registro existente. Si no existe, lo crea.
+// Nunca elimina ni modifica los registros encontrados.
+async function obtenerOCrear(Modelo, filtro, datos) {
+  const existente = await Modelo.findOne(filtro);
+
+  if (existente) {
+    console.log(`Ya existe: ${Modelo.modelName} - ${existente._id}`);
+    return existente;
+  }
+
+  const nuevo = await Modelo.create(datos);
+  console.log(`Creado: ${Modelo.modelName} - ${nuevo._id}`);
+  return nuevo;
+}
+
+async function ejecutarSeed() {
   try {
     const uri = process.env.MONGODB_URI;
+
     if (!uri) {
-      console.error('Error: MONGODB_URI no está definido en el archivo .env');
-      process.exit(1);
+      throw new Error('MONGODB_URI no está definido en .env');
     }
 
-    console.log('Conectando a MongoDB para ejecutar Seed...');
+    console.log('Conectando a MongoDB...');
     await mongoose.connect(uri);
     console.log('Conexión establecida.');
 
-    console.log('Limpiando colecciones existentes...');
-    await Promise.all([
-      Usuario.deleteMany({}),
-      Propietario.deleteMany({}),
-      Mascota.deleteMany({}),
-      Veterinario.deleteMany({}),
-      Atencion.deleteMany({})
-    ]);
-    console.log('Colecciones limpiadas.');
+    // 1. Usuarios: el modelo cifra las contraseñas automáticamente.
+    const admin = await obtenerOCrear(
+      Usuario,
+      { email: 'admin@vetcare.com' },
+      {
+        nombre: 'Administrador General',
+        email: 'admin@vetcare.com',
+        password: 'Admin123!',
+        rol: 'administrador',
+        activo: true
+      }
+    );
 
-    // 1. Crear Usuarios de prueba
-    console.log('Creando usuarios iniciales...');
-    const adminUser = await Usuario.create({
-      nombre: 'Administrador General',
-      email: 'admin@vetcare.com',
-      password: 'Admin123!',
-      rol: 'administrador',
-      activo: true
-    });
+    await obtenerOCrear(
+      Usuario,
+      { email: 'recepcion@vetcare.com' },
+      {
+        nombre: 'Laura Recepción',
+        email: 'recepcion@vetcare.com',
+        password: 'Recepcion123!',
+        rol: 'administrativo',
+        activo: true
+      }
+    );
 
-    const recepcionUser = await Usuario.create({
-      nombre: 'Laura Recepción',
-      email: 'recepcion@vetcare.com',
-      password: 'Recepcion123!',
-      rol: 'administrativo',
-      activo: true
-    });
+    const usuarioVet = await obtenerOCrear(
+      Usuario,
+      { email: 'dr.mendoza@vetcare.com' },
+      {
+        nombre: 'Dr. Carlos Mendoza',
+        email: 'dr.mendoza@vetcare.com',
+        password: 'Vet123!',
+        rol: 'veterinario',
+        activo: true
+      }
+    );
 
-    const vetUser = await Usuario.create({
-      nombre: 'Dr. Carlos Mendoza',
-      email: 'dr.mendoza@vetcare.com',
-      password: 'Vet123!',
-      rol: 'veterinario',
-      activo: true
-    });
+    // 2. Veterinarios
+    const vet1 = await obtenerOCrear(
+      Veterinario,
+      { documento: 'VET-1001' },
+      {
+        nombre: 'Dr. Carlos Mendoza',
+        documento: 'VET-1001',
+        telefono: '+57 300 123 4567',
+        correo: 'dr.mendoza@vetcare.com',
+        especialidad: 'Cirugía y Traumatología',
+        usuario: usuarioVet._id,
+        activo: true
+      }
+    );
 
-    console.log('3 Usuarios creados exitosamente.');
+    const vet2 = await obtenerOCrear(
+      Veterinario,
+      { documento: 'VET-1002' },
+      {
+        nombre: 'Dra. Sofía Ramírez',
+        documento: 'VET-1002',
+        telefono: '+57 311 987 6543',
+        correo: 'dra.ramirez@vetcare.com',
+        especialidad: 'Dermatología y Medicina Felina',
+        usuario: null,
+        activo: true
+      }
+    );
 
-    // 2. Crear Veterinarios
-    console.log('Creando veterinarios...');
-    const vet1 = await Veterinario.create({
-      nombre: 'Dr. Carlos Mendoza',
-      documento: 'VET-1001',
-      telefono: '+57 300 123 4567',
-      correo: 'dr.mendoza@vetcare.com',
-      especialidad: 'Cirugía y Traumatología',
-      usuario: vetUser._id,
-      activo: true
-    });
+    // 3. Propietarios
+    const prop1 = await obtenerOCrear(
+      Propietario,
+      { documento: '10172001' },
+      {
+        nombre: 'Juan Camilo Pérez',
+        documento: '10172001',
+        telefono: '3012223344',
+        correo: 'juan.perez@email.com',
+        direccion: 'Calle 45 # 12-34, Bogotá'
+      }
+    );
 
-    const vet2 = await Veterinario.create({
-      nombre: 'Dra. Sofía Ramírez',
-      documento: 'VET-1002',
-      telefono: '+57 311 987 6543',
-      correo: 'dra.ramirez@vetcare.com',
-      especialidad: 'Dermatología y Medicina Felina',
-      usuario: null,
-      activo: true
-    });
+    const prop2 = await obtenerOCrear(
+      Propietario,
+      { documento: '10172002' },
+      {
+        nombre: 'María Camila Rodríguez',
+        documento: '10172002',
+        telefono: '3158889900',
+        correo: 'maria.rodriguez@email.com',
+        direccion: 'Carrera 7 # 85-20, Bogotá'
+      }
+    );
 
-    console.log('2 Veterinarios creados exitosamente.');
+    const prop3 = await obtenerOCrear(
+      Propietario,
+      { documento: '10172003' },
+      {
+        nombre: 'Andrés Felipe Castro',
+        documento: '10172003',
+        telefono: '3205556677',
+        correo: 'andres.castro@email.com',
+        direccion: 'Avenida 68 # 24-50, Bogotá'
+      }
+    );
 
-    // 3. Crear Propietarios
-    console.log('Creando propietarios...');
-    const prop1 = await Propietario.create({
-      nombre: 'Juan Camilo Pérez',
-      documento: '10172001',
-      telefono: '3012223344',
-      correo: 'juan.perez@email.com',
-      direccion: 'Calle 45 # 12-34, Bogotá'
-    });
+    // 4. Mascotas: se identifican por nombre y propietario.
+    const mascota1 = await obtenerOCrear(
+      Mascota,
+      { nombre: 'Max', propietario: prop1._id },
+      {
+        nombre: 'Max',
+        especie: 'Canino',
+        raza: 'Golden Retriever',
+        sexo: 'Macho',
+        fechaNacimiento: new Date('2021-04-15'),
+        color: 'Dorado',
+        propietario: prop1._id,
+        activo: true
+      }
+    );
 
-    const prop2 = await Propietario.create({
-      nombre: 'María Camila Rodríguez',
-      documento: '10172002',
-      telefono: '3158889900',
-      correo: 'maria.rodriguez@email.com',
-      direccion: 'Carrera 7 # 85-20, Bogotá'
-    });
+    const mascota2 = await obtenerOCrear(
+      Mascota,
+      { nombre: 'Luna', propietario: prop2._id },
+      {
+        nombre: 'Luna',
+        especie: 'Felino',
+        raza: 'Siamés',
+        sexo: 'Hembra',
+        fechaNacimiento: new Date('2022-08-10'),
+        color: 'Blanco con marrón',
+        propietario: prop2._id,
+        activo: true
+      }
+    );
 
-    const prop3 = await Propietario.create({
-      nombre: 'Andrés Felipe Castro',
-      documento: '10172003',
-      telefono: '3205556677',
-      correo: 'andres.castro@email.com',
-      direccion: 'Avenida 68 # 24-50, Bogotá'
-    });
+    const mascota3 = await obtenerOCrear(
+      Mascota,
+      { nombre: 'Rocky', propietario: prop3._id },
+      {
+        nombre: 'Rocky',
+        especie: 'Canino',
+        raza: 'Bulldog Francés',
+        sexo: 'Macho',
+        fechaNacimiento: new Date('2023-01-20'),
+        color: 'Atigrado',
+        propietario: prop3._id,
+        activo: true
+      }
+    );
 
-    console.log('3 Propietarios creados exitosamente.');
+    const mascota4 = await obtenerOCrear(
+      Mascota,
+      { nombre: 'Milo', propietario: prop1._id },
+      {
+        nombre: 'Milo',
+        especie: 'Felino',
+        raza: 'Angora',
+        sexo: 'Macho',
+        fechaNacimiento: new Date('2022-11-05'),
+        color: 'Gris plata',
+        propietario: prop1._id,
+        activo: true
+      }
+    );
 
-    // 4. Crear Mascotas vinculadas a Propietarios
-    console.log('Creando mascotas...');
-    const mascota1 = await Mascota.create({
-      nombre: 'Max',
-      especie: 'Canino',
-      raza: 'Golden Retriever',
-      sexo: 'Macho',
-      fechaNacimiento: new Date('2021-04-15'),
-      color: 'Dorado',
-      propietario: prop1._id,
-      activo: true
-    });
+    // 5. Atenciones: se evita repetir la combinación de mascota,
+    // veterinario, hora y motivo, aunque cambie la fecha del seed.
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
-    const mascota2 = await Mascota.create({
-      nombre: 'Luna',
-      especie: 'Felino',
-      raza: 'Siamés',
-      sexo: 'Hembra',
-      fechaNacimiento: new Date('2022-08-10'),
-      color: 'Blanco con marrón',
-      propietario: prop2._id,
-      activo: true
-    });
+    const fecha = (dias) => {
+      const resultado = new Date(hoy);
+      resultado.setDate(resultado.getDate() + dias);
+      return resultado;
+    };
 
-    const mascota3 = await Mascota.create({
-      nombre: 'Rocky',
-      especie: 'Canino',
-      raza: 'Bulldog Francés',
-      sexo: 'Macho',
-      fechaNacimiento: new Date('2023-01-20'),
-      color: 'Atigrado',
-      propietario: prop3._id,
-      activo: true
-    });
+    const atenciones = [
+      {
+        mascota: mascota1._id,
+        veterinario: vet1._id,
+        fecha: fecha(-1),
+        hora: '09:00',
+        motivoConsulta: 'Control general y chequeo preventivo anual',
+        sintomas: 'Leve enrojecimiento en encías superiores',
+        diagnostico: 'Gingivitis leve grado 1',
+        tratamiento: 'Limpieza dental diaria y revisión en 3 meses',
+        observaciones: 'Peso actual: 31.5 kg',
+        estado: 'Finalizada'
+      },
+      {
+        mascota: mascota2._id,
+        veterinario: vet2._id,
+        fecha: fecha(-3),
+        hora: '11:30',
+        motivoConsulta: 'Prurito constante y rascado en las orejas',
+        sintomas: 'Sacudidas de cabeza y secreción oscura',
+        diagnostico: 'Otitis externa parasitaria',
+        tratamiento: 'Limpieza ótica y tratamiento veterinario',
+        observaciones: 'Control programado en 2 semanas',
+        estado: 'Finalizada'
+      },
+      {
+        mascota: mascota3._id,
+        veterinario: vet1._id,
+        fecha: fecha(0),
+        hora: '10:00',
+        motivoConsulta: 'Dificultad respiratoria leve y estornudos frecuentes',
+        sintomas: 'Respiración ruidosa y secreción nasal',
+        diagnostico: 'Rinitis alérgica en evaluación',
+        tratamiento: 'Evaluación y manejo veterinario',
+        observaciones: 'Paciente en observación clínica',
+        estado: 'En curso'
+      },
+      {
+        mascota: mascota4._id,
+        veterinario: vet2._id,
+        fecha: fecha(1),
+        hora: '15:00',
+        motivoConsulta: 'Refuerzo de vacuna triple felina y desparasitación',
+        sintomas: '',
+        diagnostico: '',
+        tratamiento: '',
+        observaciones: 'Traer carnet de vacunación',
+        estado: 'Programada'
+      },
+      {
+        mascota: mascota1._id,
+        veterinario: vet1._id,
+        fecha: fecha(-7),
+        hora: '14:00',
+        motivoConsulta: 'Corte de uñas y baño estético medicado',
+        sintomas: '',
+        diagnostico: '',
+        tratamiento: '',
+        observaciones: 'Cancelada por el propietario',
+        estado: 'Cancelada'
+      }
+    ];
 
-    const mascota4 = await Mascota.create({
-      nombre: 'Milo',
-      especie: 'Felino',
-      raza: 'Angora',
-      sexo: 'Macho',
-      fechaNacimiento: new Date('2022-11-05'),
-      color: 'Gris plata',
-      propietario: prop1._id,
-      activo: true
-    });
+    for (const atencion of atenciones) {
+      await obtenerOCrear(
+        Atencion,
+        {
+          mascota: atencion.mascota,
+          veterinario: atencion.veterinario,
+          hora: atencion.hora,
+          motivoConsulta: atencion.motivoConsulta
+        },
+        atencion
+      );
+    }
 
-    console.log('4 Mascotas creadas exitosamente.');
-
-    // 5. Crear Atenciones (Citas y Consultas unificadas)
-    console.log('Creando atenciones veterinarias...');
-    const fechaAyer = new Date();
-    fechaAyer.setDate(fechaAyer.getDate() - 1);
-
-    const fechaHace3Dias = new Date();
-    fechaHace3Dias.setDate(fechaHace3Dias.getDate() - 3);
-
-    const fechaHoy = new Date();
-
-    const fechaManana = new Date();
-    fechaManana.setDate(fechaManana.getDate() + 1);
-
-    const fechaSemanaPasada = new Date();
-    fechaSemanaPasada.setDate(fechaSemanaPasada.getDate() - 7);
-
-    // Atención 1: Finalizada con historial médico completo
-    await Atencion.create({
-      mascota: mascota1._id,
-      veterinario: vet1._id,
-      fecha: fechaAyer,
-      hora: '09:00',
-      motivoConsulta: 'Control general y chequeo preventivo anual',
-      sintomas: 'Paciente activo, presenta leve enrojecimiento en encías superiores',
-      diagnostico: 'Gingivitis leve grado 1',
-      tratamiento: 'Limpieza dental con pasta enzimática profiláctica diaria. Revisión en 3 meses.',
-      observaciones: 'Peso actual: 31.5 kg. Vacunas al día.',
-      estado: 'Finalizada'
-    });
-
-    // Atención 2: Finalizada con historial médico dermatológico
-    await Atencion.create({
-      mascota: mascota2._id,
-      veterinario: vet2._id,
-      fecha: fechaHace3Dias,
-      hora: '11:30',
-      motivoConsulta: 'Prurito constante y rascado en las orejas',
-      sintomas: 'Sacudidas de cabeza, secreción ceruminosa oscura en canal auditivo',
-      diagnostico: 'Otitis externa parasitaria por Otodectes cynotis',
-      tratamiento: 'Limpieza con solución ótica y gotas acaricidas cada 12 horas por 14 días.',
-      observaciones: 'Se toma muestra citológica de control. Control programado en 2 semanas.',
-      estado: 'Finalizada'
-    });
-
-    // Atención 3: En curso hoy
-    await Atencion.create({
-      mascota: mascota3._id,
-      veterinario: vet1._id,
-      fecha: fechaHoy,
-      hora: '10:00',
-      motivoConsulta: 'Dificultad respiratoria leve y estornudos frecuentes',
-      sintomas: 'Respiración ruidosa estertorosa con leve secreción nasal transparente',
-      diagnostico: 'Rinitis alérgica estacional en evaluación',
-      tratamiento: 'Nebulizaciones con suero fisiológico y antihistamínico vía oral',
-      observaciones: 'Paciente en sala de observación clínica.',
-      estado: 'En curso'
-    });
-
-    // Atención 4: Programada para mañana
-    await Atencion.create({
-      mascota: mascota4._id,
-      veterinario: vet2._id,
-      fecha: fechaManana,
-      hora: '15:00',
-      motivoConsulta: 'Aplicación de refuerzo de vacuna triple felina y desparasitación',
-      sintomas: '',
-      diagnostico: '',
-      tratamiento: '',
-      observaciones: 'Recordar al dueño traer carnet de vacunación.',
-      estado: 'Programada'
-    });
-
-    // Atención 5: Cancelada
-    await Atencion.create({
-      mascota: mascota1._id,
-      veterinario: vet1._id,
-      fecha: fechaSemanaPasada,
-      hora: '14:00',
-      motivoConsulta: 'Corte de uñas y baño estético medicado',
-      sintomas: '',
-      diagnostico: '',
-      tratamiento: '',
-      observaciones: 'El propietario canceló por motivos de viaje familiar.',
-      estado: 'Cancelada'
-    });
-
-    console.log('5 Atenciones veterinarias creadas exitosamente.');
-    console.log('====================================================');
-    console.log('¡SEED COMPLETADO CON ÉXITO!');
-    console.log('Usuarios disponibles para pruebas:');
-    console.log('  1. Admin:         admin@vetcare.com     / Clave: Admin123!');
-    console.log('  2. Recepción:     recepcion@vetcare.com / Clave: Recepcion123!');
-    console.log('  3. Veterinario:   dr.mendoza@vetcare.com / Clave: Vet123!');
-    console.log('====================================================');
-
-    await mongoose.connection.close();
-    process.exit(0);
+    console.log('\nSeed terminado.');
+    console.log('No se eliminaron registros existentes.');
+    console.log('Usuarios de prueba configurados en el seed:');
+    console.log('Administrador: admin@vetcare.com / Admin123!');
+    console.log('Administrativo: recepcion@vetcare.com / Recepcion123!');
+    console.log('Veterinario: dr.mendoza@vetcare.com / Vet123!');
+    console.log(
+      'Si una cuenta ya existía, su contraseña y rol no fueron modificados.'
+    );
   } catch (error) {
-    console.error('Error durante la ejecución del Seed:', error);
-    process.exit(1);
+    console.error('Error durante el seed:', error.message);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
-};
+}
 
 ejecutarSeed();
